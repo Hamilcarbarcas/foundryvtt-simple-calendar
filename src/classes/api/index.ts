@@ -1114,6 +1114,86 @@ export function getAllMoons(calendarId: string = "active"): SimpleCalendar.MoonD
 }
 
 /**
+ * Gets the state of every moon of the specified calendar at a moment in time.
+ *
+ * `phase` is the phase the calendar shows for that date, so it only changes at the date boundary. `daysIntoCycle` and
+ * `cycleFraction` also count the time of day, so they move smoothly through the day; `cycleFraction` runs from 0 at the
+ * start of the first phase to just under 1 at the end of the last.
+ *
+ * @param seconds Optional timestamp (in seconds) to get the moon states for. If not provided the calendar's current date and time will be used.
+ * @param calendarId Optional parameter to specify the ID of the calendar to use. If not provided the current active calendar will be used.
+ *
+ * @returns One state per moon, in the calendar's moon order.
+ *
+ * @example
+ * ```javascript
+ * SimpleCalendar.api.getMoonStates();
+ * // [
+ * //     {
+ * //         id: "2c26b7c6",
+ * //         name: "Moon",
+ * //         phase: { name: "Waxing Gibbous", length: 6.38265, icon: "waxing-gibbous", singleDay: false },
+ * //         phaseIndex: 3,
+ * //         daysIntoCycle: 11.2,
+ * //         cycleFraction: 0.379
+ * //     }
+ * // ]
+ * ```
+ */
+export function getMoonStates(seconds?: number, calendarId: string = "active"): SimpleCalendar.MoonState[] {
+    const cal = calendarId === "active" ? CalManager.getActiveCalendar() : CalManager.getCalendar(calendarId);
+    if (cal) {
+        let ts = seconds === undefined ? cal.toSeconds() : seconds;
+        // If this is a Pathfinder 2E game, add the world creation seconds, as timestampToDate does
+        if (PF2E.isPF2E && cal.generalSettings.pf2eSync) {
+            ts += PF2E.getWorldCreateSeconds(cal);
+        }
+        const sunEvents = cal.getSunEvents(ts);
+        return cal.moons.map((m) => {
+            return m.getMoonState(cal, ts, sunEvents);
+        });
+    } else {
+        Logger.error(`SimpleCalendar.api.getMoonStates - Unable to find a calendar with the passed in ID of "${calendarId}"`);
+        return [];
+    }
+}
+
+/**
+ * Gets when each moon of the specified calendar rises and sets during a date.
+ *
+ * A moon is placed as a second sun running behind the real one by its phase: a new moon rises and sets with the sun, a full
+ * moon rises at sunset and sets at sunrise, and it rises a little later each day. So a date can have no moonrise, or no
+ * moonset; that one is null.
+ *
+ * @param seconds Optional timestamp (in seconds) of any moment in the date. If not provided the calendar's current date will be used.
+ * @param calendarId Optional parameter to specify the ID of the calendar to use. If not provided the current active calendar will be used.
+ *
+ * @returns One entry per moon, in the calendar's moon order, with rise and set as timestamps.
+ *
+ * @example
+ * ```javascript
+ * SimpleCalendar.api.getMoonRiseSet();
+ * // [ { id: "2c26b7c6", name: "Moon", rise: 1622570400, set: 1622523600 } ]
+ * ```
+ */
+export function getMoonRiseSet(seconds?: number, calendarId: string = "active"): SimpleCalendar.MoonRiseSet[] {
+    const cal = calendarId === "active" ? CalManager.getActiveCalendar() : CalManager.getCalendar(calendarId);
+    if (cal) {
+        let ts = seconds === undefined ? cal.toSeconds() : seconds;
+        // If this is a Pathfinder 2E game, add the world creation seconds, as timestampToDate does
+        if (PF2E.isPF2E && cal.generalSettings.pf2eSync) {
+            ts += PF2E.getWorldCreateSeconds(cal);
+        }
+        return cal.moons.map((m) => {
+            return { id: m.id, name: m.name, ...m.getRiseSet(cal, ts) };
+        });
+    } else {
+        Logger.error(`SimpleCalendar.api.getMoonRiseSet - Unable to find a calendar with the passed in ID of "${calendarId}"`);
+        return [];
+    }
+}
+
+/**
  * Gets the details for all the seasons for the specified calendar.
  *
  * @param calendarId Optional parameter to specify the ID of the calendar to get the list of seasons from. If not provided the current active calendar will be used.

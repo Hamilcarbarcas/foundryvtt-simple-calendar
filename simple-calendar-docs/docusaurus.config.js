@@ -8,12 +8,12 @@ const darkTheme = themes.dracula;
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-    title: "Simple Calendar Reborn",
+    title: "Simple Calendar",
     tagline: "Your Calendar, Your Way",
     favicon: "img/logo.svg",
 
     // Set the production url of your site here
-    url: "https://simplecalendarreborn.net/",
+    url: "https://simplecalendar.info/",
     // Set the /<baseUrl>/ pathname under which your site is served
     // For GitHub pages deployment, it is often '/<projectName>/'
     baseUrl: "/",
@@ -36,7 +36,7 @@ const config = {
             ({
                 docs: {
                     sidebarPath: require.resolve("./sidebars.js"),
-                    includeCurrentVersion: true
+                    includeCurrentVersion: false
                 },
                 blog: false,
                 theme: {
@@ -193,7 +193,7 @@ const config = {
             // Replace with your project's social card
             image: "img/logo.png",
             navbar: {
-                title: "Simple Calendar Reborn",
+                title: "Simple Calendar",
                 logo: {
                     alt: "Simple Calendar Logo",
                     src: "img/logo.svg"
@@ -274,8 +274,16 @@ const config = {
                                 href: "https://discord.gg/foundryvtt"
                             },
                             {
+                                label: "Foundry Hub",
+                                href: "https://www.foundryvtt-hub.com/package/foundryvtt-simple-calendar/"
+                            },
+                            {
                                 label: "GitHub",
                                 href: "https://github.com/Fireblight-Studios/foundryvtt-simple-calendar"
+                            },
+                            {
+                                label: "Foundry Hub - Weblate",
+                                href: "https://weblate.foundryvtt-hub.com/projects/simple-calendar/"
                             }
                         ]
                     },
@@ -283,16 +291,20 @@ const config = {
                         title: "Support",
                         items: [
                             {
-                                html: '<p class="footer-text">Simple Calendar Reborn is free to use by anyone! Below are options for those who want to donate to the development or support the developer.</p>'
+                                html: '<p class="footer-text">Simple Calendar is free to use by anyone! Below are options for those who want to donate to the development or support the developer.</p>'
+                            },
+                            {
+                                label: "Patreon",
+                                href: "https://www.patreon.com/vigorator"
                             },
                             {
                                 label: "Ko-fi",
-                                href: "https://ko-fi.com/arctis_fireblight"
+                                href: "https://ko-fi.com/vigorator"
                             }
                         ]
                     }
                 ],
-                copyright: `Simple Calendar Reborn © 2025-${new Date().getFullYear()} Arctis Fireblight. Originally created by Dean Vigoren. Built with Docusaurus.`
+                copyright: `Copyright © ${new Date().getFullYear()} Simple Calendar. Built with Docusaurus.`
             },
             prism: {
                 theme: lightTheme,

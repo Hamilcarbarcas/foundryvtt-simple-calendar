@@ -1,6 +1,6 @@
 import Calendar from "../calendar";
 import { deepMerge } from "../utilities/object";
-import { FormatDateTime, GetPresetTimeOfDay, IsDayBetweenDates } from "../utilities/date-time";
+import { DateToTimestamp, FormatDateTime, GetPresetTimeOfDay, IsDayBetweenDates } from "../utilities/date-time";
 import { GetIcon } from "../utilities/visual";
 import { GameSettings } from "../foundry-interfacing/game-settings";
 import { CalendarClickEvents, CalendarViews, DateRangeMatch, NoteRepeat, PresetTimeOfDay } from "../../constants";
@@ -307,6 +307,12 @@ export default class CalendarFull {
                 )}</strong>: <span class="fsc-sunrise"></span></div><div class="fsc-context-list-text"><strong>${GameSettings.Localize(
                     "FSC.Sunset"
                 )}</strong>: <span class="fsc-sunset"></span></div></div></div>`;
+                if (calendar.moons.length) {
+                    // Rows are filled per moon when a day is right-clicked (ShowDescription).
+                    html += `<div class="fsc-context-list-expand fsc-moonrise-moonset"><span class="fa fa-moon"></span>${GameSettings.Localize(
+                        "FSC.MoonriseMoonset"
+                    )}<span class="fa fa-caret-right"></span><div class="fsc-context-list-sub-menu fsc-moon-times"></div></div>`;
+                }
                 if (canChangeTime || canAddNote) {
                     html += `<div class="fsc-context-list-break"></div>`;
                     if (canChangeTime) {
@@ -706,6 +712,10 @@ export default class CalendarFull {
                                         calendar
                                     );
                                 }
+                                const moonTimes = contextList.querySelector(".fsc-moonrise-moonset .fsc-moon-times");
+                                if (moonTimes) {
+                                    CalendarFull.FillMoonTimes(moonTimes, calendar, yearIndex, monthIndex, dayIndex);
+                                }
                             }
                         }
                     }
@@ -713,6 +723,50 @@ export default class CalendarFull {
             }
         }
         return false;
+    }
+
+    /**
+     * Fills the day menu's moonrise/moonset sub-menu for a date: a rise and a set row per moon, headed by the moon's name when
+     * there is more than one. Built as elements, since moon names are user text.
+     * @param container The sub-menu element
+     * @param calendar The calendar the date is in
+     * @param year The year
+     * @param monthIndex The month index
+     * @param dayIndex The day index
+     */
+    public static FillMoonTimes(container: Element, calendar: Calendar, year: number, monthIndex: number, dayIndex: number) {
+        const midday =
+            DateToTimestamp({ year: year, month: monthIndex, day: dayIndex, hour: 0, minute: 0, seconds: 0 }, calendar) +
+            Math.floor(calendar.time.secondsPerDay / 2);
+        const formatTime = (ts: number | null) => {
+            return ts === null
+                ? GameSettings.Localize("FSC.MoonNoneThisDay")
+                : FormatDateTime(calendar.secondsToDate(ts), calendar.generalSettings.dateFormat.time, calendar);
+        };
+        const row = (label: string, value: string | null) => {
+            const div = document.createElement("div");
+            div.classList.add("fsc-context-list-text");
+            const strong = document.createElement("strong");
+            strong.textContent = value === null ? label : `${label}: `;
+            div.append(strong);
+            if (value !== null) {
+                const span = document.createElement("span");
+                span.textContent = value;
+                div.append(span);
+            }
+            return div;
+        };
+
+        const rows: HTMLElement[] = [];
+        for (const moon of calendar.moons) {
+            const times = moon.getRiseSet(calendar, midday);
+            if (calendar.moons.length > 1) {
+                rows.push(row(moon.name, null));
+            }
+            rows.push(row(GameSettings.Localize("FSC.Moonrise"), formatTime(times.rise)));
+            rows.push(row(GameSettings.Localize("FSC.Moonset"), formatTime(times.set)));
+        }
+        container.replaceChildren(...rows);
     }
 
     /**

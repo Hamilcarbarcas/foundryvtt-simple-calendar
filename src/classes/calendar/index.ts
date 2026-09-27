@@ -476,7 +476,7 @@ export default class Calendar extends ConfigurationItemBase {
      * @param [calculateTimestamp=true] If to add the date timestamp to the sunrise/sunset time
      */
     getSunriseSunsetTime(year: number, monthIndex: number, dayIndex: number, sunrise: boolean = true, calculateTimestamp: boolean = true) {
-        const activeCalendar = CalManager.getActiveCalendar();
+        const activeCalendar = this;
         const sortedSeasons = this.seasons.sort((a, b) => {
             return a.startingMonth - b.startingMonth || a.startingDay - b.startingDay;
         });
@@ -527,6 +527,42 @@ export default class Calendar extends ConfigurationItemBase {
             } else {
                 return finalSunriseTime;
             }
+        }
+        return 0;
+    }
+
+    /**
+     * Sunrise and sunset timestamps for the day containing a timestamp and the days either side, in time order:
+     * yesterday's sunrise and sunset, then today's, then tomorrow's.
+     * @param seconds The timestamp
+     */
+    getSunEvents(seconds: number): number[] {
+        const secondsPerDay = this.time.secondsPerDay;
+        const dayStart = Math.floor(seconds / secondsPerDay) * secondsPerDay;
+        const events: number[] = [];
+        for (let offset = -1; offset <= 1; offset++) {
+            const start = dayStart + offset * secondsPerDay;
+            const d = this.secondsToDate(start + Math.floor(secondsPerDay / 2));
+            events.push(start + this.getSunriseSunsetTime(d.year, d.month, d.day, true, false));
+            events.push(start + this.getSunriseSunsetTime(d.year, d.month, d.day, false, false));
+        }
+        return events;
+    }
+
+    /**
+     * Where the sun is in its daily round: 0 at sunrise, 0.5 at sunset, 1 at the next sunrise, linear within the day and within
+     * the night. Moons are placed against this, so a moon half a turn behind the sun rises at sunset in every season.
+     * @param seconds The timestamp
+     * @param events Sun events from getSunEvents, when the caller already has them for this day
+     */
+    getSolarPosition(seconds: number, events: number[] = this.getSunEvents(seconds)): number {
+        for (let i = 0; i < events.length - 1; i++) {
+            const start = events[i];
+            const end = events[i + 1];
+            if (seconds < start || seconds >= end || end <= start) {
+                continue;
+            }
+            return (i % 2 === 0 ? 0 : 0.5) + (0.5 * (seconds - start)) / (end - start);
         }
         return 0;
     }

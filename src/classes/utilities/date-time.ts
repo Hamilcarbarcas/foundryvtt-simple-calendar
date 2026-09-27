@@ -354,7 +354,7 @@ export function TimestampToDateData(seconds: number, calendar: Calendar): Simple
     result.dayOffset = month.numericRepresentationOffset;
     result.yearZero = calendar.year.yearZero;
     result.dayOfTheWeek = calendar.dayOfTheWeek(result.year, result.month, result.day);
-    result.currentSeason = calendar.getSeason(result.month, result.day + 1);
+    result.currentSeason = calendar.getSeason(result.month, result.day);
     result.weekdays = calendar.weekdays.map((w) => {
         return w.name;
     });

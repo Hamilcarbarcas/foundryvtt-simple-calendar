@@ -361,6 +361,21 @@ describe("API Class Tests", () => {
         expect(API.getAllMoons("").length).toBeGreaterThan(0);
     });
 
+    test("Get Moon States", () => {
+        expect(API.getMoonStates().length).toBe(0);
+        expect(console.error).toHaveBeenCalledTimes(1);
+        expect(API.getMoonStates(undefined, "").length).toBeGreaterThan(0);
+        expect(API.getMoonStates(0, "").length).toBeGreaterThan(0);
+    });
+
+    test("Get Moon Rise Set", () => {
+        expect(API.getMoonRiseSet().length).toBe(0);
+        expect(console.error).toHaveBeenCalledTimes(1);
+        const r = API.getMoonRiseSet(undefined, "");
+        expect(r.length).toBeGreaterThan(0);
+        expect(Object.keys(r[0])).toStrictEqual(["id", "name", "rise", "set"]);
+    });
+
     test("Get All Seasons", () => {
         expect(API.getAllSeasons().length).toBe(0);
         expect(console.error).toHaveBeenCalledTimes(1);

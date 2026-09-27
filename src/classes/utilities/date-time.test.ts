@@ -278,6 +278,15 @@ describe("Utilities Date/Time Tests", () => {
         expect(IsDayBetweenDates(tCal, dateToCheck, startDate, endDate)).toBe(DateRangeMatch.Middle);
     });
 
+    test("Timestamp to Date - season changes on its starting day", async () => {
+        // Gregorian spring starts on month index 2, day index 19 (March 20)
+        const dayBefore = DateToTimestamp({ year: 2022, month: 2, day: 18, hour: 12, minute: 0, seconds: 0 }, tCal);
+        const startDay = DateToTimestamp({ year: 2022, month: 2, day: 19, hour: 12, minute: 0, seconds: 0 }, tCal);
+        expect(TimestampToDateData(dayBefore, tCal).currentSeason.name).toBe("Winter");
+        expect(TimestampToDateData(startDay, tCal).currentSeason.name).toBe("Spring");
+        expect(TimestampToDateData(startDay, tCal).currentSeason.name).toBe(tCal.getSeason(2, 19).name);
+    });
+
     test("Timestamp to Date", async () => {
         let tstd = TimestampToDateData(3600, tCal);
         expect(tstd.year).toBe(1970);

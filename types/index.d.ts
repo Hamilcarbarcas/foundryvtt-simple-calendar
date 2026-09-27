@@ -709,6 +709,30 @@ declare global {
             export function getAllMoons(calendarId: string = "active"): SimpleCalendar.MoonData[];
 
             /**
+             * Gets the state of every moon of the specified calendar at a moment in time.
+             *
+             * `phase` is the phase the calendar shows for that date, so it only changes at the date boundary. `daysIntoCycle` and
+             * `cycleFraction` also count the time of day, so they move smoothly through the day.
+             *
+             * @param seconds Optional timestamp (in seconds) to get the moon states for. If not provided the calendar's current date and time will be used.
+             * @param calendarId Optional parameter to specify the ID of the calendar to use. If not provided the current active calendar will be used.
+             *
+             * @returns One state per moon, in the calendar's moon order.
+             */
+            export function getMoonStates(seconds?: number, calendarId: string = "active"): SimpleCalendar.MoonState[];
+
+            /**
+             * Gets when each moon of the specified calendar rises and sets during a date. A date can have no moonrise, or no
+             * moonset; that one is null.
+             *
+             * @param seconds Optional timestamp (in seconds) of any moment in the date. If not provided the calendar's current date will be used.
+             * @param calendarId Optional parameter to specify the ID of the calendar to use. If not provided the current active calendar will be used.
+             *
+             * @returns One entry per moon, in the calendar's moon order, with rise and set as timestamps.
+             */
+            export function getMoonRiseSet(seconds?: number, calendarId: string = "active"): SimpleCalendar.MoonRiseSet[];
+
+            /**
              * Gets the details for all the seasons for the specified calendar.
              *
              * @param calendarId Optional parameter to specify the ID of the calendar to get the list of seasons from. If not provided the current active calendar will be used.
@@ -2216,6 +2240,42 @@ declare global {
             singleDay: boolean;
             /** The icon to associate with this moon phase. */
             icon: Icons;
+        }
+
+        /**
+         * Interface for a moon's state at a moment in time
+         */
+        interface MoonState {
+            /** The ID of the moon. */
+            id: string;
+            /** The name of the moon. */
+            name: string;
+            /** The phase the calendar shows for the date. */
+            phase: MoonPhase;
+            /** The index of that phase in the moon's phase list. */
+            phaseIndex: number;
+            /** Days into the cycle, including the time of day. From 0 to just under the cycle length. */
+            daysIntoCycle: number;
+            /** daysIntoCycle as a fraction of the cycle length. From 0 to just under 1. */
+            cycleFraction: number;
+            /** How far round from new, measured from the centre of the first phase: 0 at new, 0.5 at full. */
+            phaseAngle: number;
+            /** Whether the moon is above the horizon. */
+            up: boolean;
+        }
+
+        /**
+         * Interface for a moon's rise and set during one date
+         */
+        interface MoonRiseSet {
+            /** The ID of the moon. */
+            id: string;
+            /** The name of the moon. */
+            name: string;
+            /** Timestamp of moonrise during the date, or null if it doesn't rise that date. */
+            rise: number | null;
+            /** Timestamp of moonset during the date, or null if it doesn't set that date. */
+            set: number | null;
         }
 
         interface NoteData {

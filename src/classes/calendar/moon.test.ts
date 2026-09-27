@@ -11,6 +11,7 @@ import Calendar from "./index";
 import PredefinedCalendar from "../configuration/predefined-calendar";
 import fetchMock from "jest-fetch-mock";
 import NoteManager from "../notes/note-manager";
+import { DateToTimestamp } from "../utilities/date-time";
 
 fetchMock.enableMocks();
 describe("Moon Tests", () => {
@@ -97,6 +98,105 @@ describe("Moon Tests", () => {
         expect(m.getDateMoonPhase(tCal, 1999, 11, 24)).toStrictEqual(m.phases[0]);
         m.firstNewMoon.yearX = 5;
         expect(m.getDateMoonPhase(tCal, 1999, 11, 24)).toStrictEqual(m.phases[3]);
+    });
+
+    test("Get Date Cycle Day and Phase Index", () => {
+        const cycleDay = m.getDateCycleDay(tCal, 1999, 11, 24);
+        expect(cycleDay).toBeGreaterThanOrEqual(0);
+        expect(m.phases[m.getPhaseIndex(cycleDay)]).toStrictEqual(m.getDateMoonPhase(tCal, 1999, 11, 24));
+
+        expect(m.getPhaseIndex(0)).toBe(0);
+        expect(m.getPhaseIndex(1)).toBe(1);
+        expect(m.getPhaseIndex(7.5)).toBe(2);
+        expect(m.getPhaseIndex(m.cycleLength + 0.1)).toBe(0);
+    });
+
+    test("Get Moon State", () => {
+        const dayStart = DateToTimestamp({ year: 2000, month: 0, day: 20, hour: 0, minute: 0, seconds: 0 }, tCal);
+        const midday = dayStart + tCal.time.secondsPerDay / 2;
+
+        const a = m.getMoonState(tCal, dayStart);
+        const b = m.getMoonState(tCal, midday);
+        expect(a.id).toBe(m.id);
+        expect(a.name).toBe("Moon");
+        expect(a.phase).toStrictEqual(m.getDateMoonPhase(tCal, 2000, 0, 20));
+        expect(a.phaseIndex).toBe(m.getPhaseIndex(m.getDateCycleDay(tCal, 2000, 0, 20)));
+        expect(a.cycleFraction).toBeCloseTo(a.daysIntoCycle / m.cycleLength);
+
+        // The phase holds for the whole date; the cycle position moves with the time of day
+        expect(b.phaseIndex).toBe(a.phaseIndex);
+        expect(b.daysIntoCycle - a.daysIntoCycle).toBeCloseTo(0.5);
+
+        // Wraps into the cycle rather than running past its length
+        m.cycleDayAdjust = m.cycleLength;
+        const c = m.getMoonState(tCal, dayStart);
+        expect(c.daysIntoCycle).toBeGreaterThanOrEqual(0);
+        expect(c.daysIntoCycle).toBeLessThan(m.cycleLength);
+
+        m.cycleLength = 0;
+        const d = m.getMoonState(tCal, dayStart);
+        expect(d.daysIntoCycle).toBe(0);
+        expect(d.cycleFraction).toBe(0);
+    });
+
+    test("Solar Position", () => {
+        // Gregorian predefined seasons: sunrise 06:00, sunset 18:00 all year
+        const dayStart = DateToTimestamp({ year: 2000, month: 0, day: 20, hour: 0, minute: 0, seconds: 0 }, tCal);
+        const hour = 3600;
+        expect(tCal.getSunEvents(dayStart + 12 * hour)).toStrictEqual([
+            dayStart - 18 * hour,
+            dayStart - 6 * hour,
+            dayStart + 6 * hour,
+            dayStart + 18 * hour,
+            dayStart + 30 * hour,
+            dayStart + 42 * hour
+        ]);
+        expect(tCal.getSolarPosition(dayStart + 6 * hour)).toBeCloseTo(0);
+        expect(tCal.getSolarPosition(dayStart + 12 * hour)).toBeCloseTo(0.25);
+        expect(tCal.getSolarPosition(dayStart + 18 * hour)).toBeCloseTo(0.5);
+        expect(tCal.getSolarPosition(dayStart)).toBeCloseTo(0.75);
+    });
+
+    test("Phase Angle and Up", () => {
+        expect(m.phaseAngleFor(0.5)).toBeCloseTo(0);
+        expect(m.phaseAngleFor(0.5 + m.cycleLength / 2)).toBeCloseTo(0.5);
+        expect(m.phaseAngleFor(0)).toBeCloseTo(1 - 0.5 / m.cycleLength);
+
+        // New moon: up with the sun. Full moon: up while the sun is down.
+        expect(Moon.isUpAt(0.25, 0)).toBe(true);
+        expect(Moon.isUpAt(0.75, 0)).toBe(false);
+        expect(Moon.isUpAt(0.75, 0.5)).toBe(true);
+        expect(Moon.isUpAt(0.25, 0.5)).toBe(false);
+        // First quarter: up from midday to the middle of the night
+        expect(Moon.isUpAt(0.3, 0.25)).toBe(true);
+        expect(Moon.isUpAt(0.2, 0.25)).toBe(false);
+    });
+
+    test("Get Rise Set", () => {
+        const dayStart = DateToTimestamp({ year: 2000, month: 0, day: 20, hour: 0, minute: 0, seconds: 0 }, tCal);
+        const times = m.getRiseSet(tCal, dayStart + 3600);
+        expect(times.rise === null && times.set === null).toBe(false);
+        for (const [moment, upAfter] of [
+            [times.rise, true],
+            [times.set, false]
+        ] as [number | null, boolean][]) {
+            if (moment === null) continue;
+            expect(moment).toBeGreaterThanOrEqual(dayStart);
+            expect(moment).toBeLessThan(dayStart + tCal.time.secondsPerDay);
+            expect(m.getMoonState(tCal, moment + 60).up).toBe(upAfter);
+            expect(m.getMoonState(tCal, moment - 60).up).toBe(!upAfter);
+        }
+
+        // Over a whole cycle, most days have both and none has two of either
+        let both = 0;
+        for (let d = 0; d < 30; d++) {
+            const t = m.getRiseSet(tCal, dayStart + d * tCal.time.secondsPerDay + 3600);
+            if (t.rise !== null && t.set !== null) both++;
+        }
+        expect(both).toBeGreaterThanOrEqual(27);
+
+        m.cycleLength = 0;
+        expect(m.getRiseSet(tCal, dayStart)).toStrictEqual({ rise: null, set: null });
     });
 
     test("Get Moon Phase", () => {
